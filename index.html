@@ -236,9 +236,10 @@ function parseHighlights(text) {
       const iframeRef = useRef(null);
 
       const getVideoId = (url) => {
-        const match = url?.match(/[?&]v=([^&]+)/);
-        return match ? match[1] : null;
-      };
+  if (!url) return null;
+  const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
 
       const videoId = getVideoId(video.url);
       const highlights = parseHighlights(video.highlights);
