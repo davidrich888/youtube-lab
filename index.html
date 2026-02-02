@@ -134,15 +134,17 @@
 
       const videoId = getVideoId(video.url);
       const highlights = parseHighlights(video.highlights);
+      const [shouldAutoplay, setShouldAutoplay] = useState(false);
 
       // 跳轉到指定時間
       const seekTo = (seconds) => {
         setCurrentTime(seconds);
+        setShouldAutoplay(true);
       };
 
-      // YouTube 嵌入 URL（含時間參數）
+      // YouTube 嵌入 URL（點擊精華片段後才自動播放）
       const youtubeUrl = videoId 
-        ? `https://www.youtube.com/embed/${videoId}?start=${currentTime}&autoplay=1`
+        ? `https://www.youtube.com/embed/${videoId}${currentTime > 0 ? `?start=${currentTime}` : ''}${shouldAutoplay ? (currentTime > 0 ? '&' : '?') + 'autoplay=1' : ''}`
         : '';
 
       const handleRatingChange = async (newRating) => {
