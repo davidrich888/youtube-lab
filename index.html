@@ -49,23 +49,34 @@
       return 0;
     }
 
-    // 解析精華片段
-    function parseHighlights(text) {
-      if (!text) return [];
-      const lines = text.split('\n').filter(line => line.trim());
-      return lines.map(line => {
-        const match = line.match(/^(\d+:\d+)(?:-(\d+:\d+))?\s*[-–]\s*(.+)$/);
-        if (match) {
-          return {
-            startTime: match[1],
-            endTime: match[2] || null,
-            description: match[3].trim(),
-            startSeconds: timeToSeconds(match[1])
-          };
-        }
-        return null;
-      }).filter(Boolean);
+// 解析精華片段
+function parseHighlights(text) {
+  if (!text) return [];
+  
+  const highlights = [];
+  const timePattern = /(\d+:\d+)-(\d+:\d+)/g;
+  const matches = [...text.matchAll(timePattern)];
+  
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const startTime = match[1];
+    const endTime = match[2];
+    const startIndex = match.index + match[0].length;
+    const endIndex = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const description = text.slice(startIndex, endIndex).trim();
+    
+    if (description) {
+      highlights.push({
+        startTime,
+        endTime,
+        description,
+        startSeconds: timeToSeconds(startTime)
+      });
     }
+  }
+  
+  return highlights;
+}
 
     // 星星評分組件
     function StarRating({ rating, onRate, size = "text-lg" }) {
