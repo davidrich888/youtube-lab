@@ -33,8 +33,9 @@
 
     const API_URL = "https://david86726.app.n8n.cloud/webhook/youtube-videos";
     const UPDATE_API_URL = "https://david86726.app.n8n.cloud/webhook/update-video";
+    const DELETE_API_URL = "https://david86726.app.n8n.cloud/webhook/delete-video";
 
-    const categories = ["全部", "交易", "AI 自動化", "商業", "健身"];
+    const categories = ["全部", "交易", "AI 自動化", "商業", "健身", "兩性", "人生", "美學"];
     const statuses = ["全部", "待看", "進行中", "已完成"];
 
     // 星星評分組件
@@ -91,6 +92,7 @@
       const [status, setStatus] = useState(video.status || "待看");
       const [isUpdating, setIsUpdating] = useState(false);
       const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+      const [isDeleting, setIsDeleting] = useState(false);
 
       // 取得 YouTube 影片 ID
       const getVideoId = (url) => {
@@ -141,9 +143,22 @@
       };
 
       const handleDelete = async () => {
-        // 這裡之後可以加刪除 API
-        onDelete(video.id);
-        onClose();
+        setIsDeleting(true);
+        try {
+          await fetch(DELETE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              pageId: video.id
+            })
+          });
+          onDelete(video.id);
+          onClose();
+        } catch (err) {
+          console.error('Error deleting video:', err);
+          alert('刪除失敗，請稍後再試');
+        }
+        setIsDeleting(false);
       };
 
       // ESC 鍵關閉
@@ -242,12 +257,47 @@
                 <span>▶</span> 在 YouTube 觀看
               </a>
               <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-3 rounded-xl bg-neutral-800 hover:bg-red-900 text-neutral-400 hover:text-red-400 font-medium text-sm transition-colors"
+                title="刪除影片"
+              >
+                🗑️
+              </button>
+              <button
                 onClick={onClose}
                 className="px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium text-sm transition-colors"
               >
                 關閉
               </button>
             </div>
+
+            {/* 刪除確認對話框 */}
+            {showDeleteConfirm && (
+              <div className="absolute inset-0 bg-black/80 flex items-center justify-center rounded-2xl">
+                <div className="bg-neutral-800 rounded-xl p-6 mx-4 max-w-sm border border-neutral-700">
+                  <div className="text-center mb-4">
+                    <div className="text-3xl mb-2">🗑️</div>
+                    <h3 className="text-white font-semibold mb-2">確定要刪除嗎？</h3>
+                    <p className="text-neutral-400 text-sm">這會同時從 Notion 資料庫中移除此影片</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-2 rounded-lg bg-neutral-700 text-white text-sm font-medium hover:bg-neutral-600 transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="flex-1 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+                    >
+                      {isDeleting ? '刪除中...' : '確定刪除'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 更新中指示器 */}
             {isUpdating && (
