@@ -18,6 +18,13 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    .recording {
+      animation: pulse-red 1.5s infinite;
+    }
+    @keyframes pulse-red {
+      0%, 100% { background-color: rgba(239, 68, 68, 0.8); }
+      50% { background-color: rgba(239, 68, 68, 0.4); }
+    }
   </style>
 </head>
 <body>
@@ -78,16 +85,25 @@
       );
     }
 
-    function CategorySelector({ currentCategory, onCategoryChange, isUpdating }) {
+    // 複選分類組件
+    function CategoryMultiSelector({ selectedCategories, onCategoryChange, isUpdating }) {
+      const toggleCategory = (category) => {
+        if (selectedCategories.includes(category)) {
+          onCategoryChange(selectedCategories.filter(c => c !== category));
+        } else {
+          onCategoryChange([...selectedCategories, category]);
+        }
+      };
+
       return (
         <div className="flex flex-wrap gap-2">
           {editableCategories.map(category => (
             <button
               key={category}
-              onClick={() => onCategoryChange(category)}
+              onClick={() => toggleCategory(category)}
               disabled={isUpdating}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                currentCategory === category
+                selectedCategories.includes(category)
                   ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                   : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
               } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -122,15 +138,81 @@
       );
     }
 
+    // 語音輸入組件
+    function SpeechToText({ onResult, isRecording, setIsRecording }) {
+      const recognitionRef = useRef(null);
+
+      const startRecording = () => {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          alert('您的瀏覽器不支援語音輸入');
+          return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = 'zh-TW';
+
+        recognitionRef.current.onresult = (event) => {
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+            onResult(finalTranscript);
+          }
+        };
+
+        recognitionRef.current.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.start();
+        setIsRecording(true);
+      };
+
+      const stopRecording = () => {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+        setIsRecording(false);
+      };
+
+      return (
+        <button
+          onClick={isRecording ? stopRecording : startRecording}
+          className={`p-2 rounded-lg transition-all ${
+            isRecording 
+              ? 'recording text-white' 
+              : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-300'
+          }`}
+          title={isRecording ? '停止錄音' : '語音輸入'}
+        >
+          🎤
+        </button>
+      );
+    }
+
     function VideoModal({ video, onClose, onUpdate, onDelete }) {
       const [rating, setRating] = useState(video.rating || 0);
       const [status, setStatus] = useState(video.status || "待看");
-      const [category, setCategory] = useState(video.category || "");
+      const [categories, setCategories] = useState(video.categories || []);
+      const [notes, setNotes] = useState(video.notes || "");
       const [isUpdating, setIsUpdating] = useState(false);
       const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
       const [isDeleting, setIsDeleting] = useState(false);
       const [currentTime, setCurrentTime] = useState(0);
       const [shouldAutoplay, setShouldAutoplay] = useState(false);
+      const [isRecording, setIsRecording] = useState(false);
+      const [isSavingNotes, setIsSavingNotes] = useState(false);
 
       const getVideoId = (url) => {
         const match = url?.match(/[?&]v=([^&]+)/);
@@ -149,52 +231,50 @@
         ? `https://www.youtube.com/embed/${videoId}${currentTime > 0 ? `?start=${currentTime}` : ''}${shouldAutoplay ? (currentTime > 0 ? '&' : '?') + 'autoplay=1' : ''}`
         : '';
 
-      const handleRatingChange = async (newRating) => {
+      const handleUpdate = async (updates) => {
+        setIsUpdating(true);
+        try {
+          await fetch(UPDATE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              pageId: video.id, 
+              rating: updates.rating ?? rating, 
+              status: updates.status ?? status, 
+              categories: updates.categories ?? categories,
+              notes: updates.notes ?? notes
+            })
+          });
+          onUpdate(video.id, updates);
+        } catch (err) {
+          console.error('Error updating:', err);
+        }
+        setIsUpdating(false);
+      };
+
+      const handleRatingChange = (newRating) => {
         setRating(newRating);
-        setIsUpdating(true);
-        try {
-          await fetch(UPDATE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pageId: video.id, rating: newRating, status, category })
-          });
-          onUpdate(video.id, { rating: newRating, status, category });
-        } catch (err) {
-          console.error('Error updating:', err);
-        }
-        setIsUpdating(false);
+        handleUpdate({ rating: newRating });
       };
 
-      const handleStatusChange = async (newStatus) => {
+      const handleStatusChange = (newStatus) => {
         setStatus(newStatus);
-        setIsUpdating(true);
-        try {
-          await fetch(UPDATE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pageId: video.id, rating, status: newStatus, category })
-          });
-          onUpdate(video.id, { rating, status: newStatus, category });
-        } catch (err) {
-          console.error('Error updating:', err);
-        }
-        setIsUpdating(false);
+        handleUpdate({ status: newStatus });
       };
 
-      const handleCategoryChange = async (newCategory) => {
-        setCategory(newCategory);
-        setIsUpdating(true);
-        try {
-          await fetch(UPDATE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ pageId: video.id, rating, status, category: newCategory })
-          });
-          onUpdate(video.id, { rating, status, category: newCategory });
-        } catch (err) {
-          console.error('Error updating:', err);
-        }
-        setIsUpdating(false);
+      const handleCategoryChange = (newCategories) => {
+        setCategories(newCategories);
+        handleUpdate({ categories: newCategories });
+      };
+
+      const handleSaveNotes = async () => {
+        setIsSavingNotes(true);
+        await handleUpdate({ notes });
+        setIsSavingNotes(false);
+      };
+
+      const handleSpeechResult = (text) => {
+        setNotes(prev => prev + (prev ? ' ' : '') + text);
       };
 
       const handleDelete = async () => {
@@ -233,16 +313,17 @@
             )}
 
             <div className="p-5 space-y-5">
+              {/* 精華片段 - 金色背景 */}
               {highlights.length > 0 && (
-                <div className="bg-neutral-800/50 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-amber-900/40 to-amber-800/20 border border-amber-600/30 rounded-xl p-4">
                   <h3 className="text-amber-400 font-medium mb-3">⭐ 精華片段（點擊跳轉）</h3>
                   <div className="space-y-2">
                     {highlights.map((h, idx) => (
-                      <button key={idx} onClick={() => seekTo(h.startSeconds)} className="w-full flex items-start gap-3 text-left hover:bg-neutral-700/50 rounded-lg p-2 transition-colors">
-                        <span className="bg-amber-500/20 text-amber-400 px-2 py-1 rounded text-xs font-mono whitespace-nowrap">
+                      <button key={idx} onClick={() => seekTo(h.startSeconds)} className="w-full flex items-start gap-3 text-left hover:bg-amber-700/20 rounded-lg p-2 transition-colors">
+                        <span className="bg-amber-500/30 text-amber-300 px-2 py-1 rounded text-xs font-mono whitespace-nowrap border border-amber-500/40">
                           {h.startTime}{h.endTime ? `-${h.endTime}` : ''}
                         </span>
-                        <span className="text-neutral-300 text-sm">{h.description}</span>
+                        <span className="text-neutral-200 text-sm">{h.description}</span>
                       </button>
                     ))}
                   </div>
@@ -261,8 +342,12 @@
               </div>
 
               <div>
-                <p className="text-neutral-500 text-xs mb-2">分類 {isUpdating && <span className="text-amber-400">（更新中...）</span>}</p>
-                <CategorySelector currentCategory={category} onCategoryChange={handleCategoryChange} isUpdating={isUpdating} />
+                <p className="text-neutral-500 text-xs mb-2">分類（可複選）{isUpdating && <span className="text-amber-400">（更新中...）</span>}</p>
+                <CategoryMultiSelector 
+                  selectedCategories={categories} 
+                  onCategoryChange={handleCategoryChange}
+                  isUpdating={isUpdating}
+                />
               </div>
 
               {video.summary && (
@@ -276,6 +361,39 @@
                   )}
                 </div>
               )}
+
+              {/* 我的筆記 */}
+              <div className="bg-neutral-800/50 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-neutral-400 font-medium">📝 我的筆記</h3>
+                  <div className="flex items-center gap-2">
+                    <SpeechToText 
+                      onResult={handleSpeechResult} 
+                      isRecording={isRecording}
+                      setIsRecording={setIsRecording}
+                    />
+                    <button
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {isSavingNotes ? '儲存中...' : '儲存筆記'}
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="在這裡寫下你的筆記..."
+                  className="w-full h-32 bg-neutral-900 border border-neutral-700 rounded-lg p-3 text-neutral-200 text-sm resize-none focus:outline-none focus:border-amber-500/50 placeholder-neutral-600"
+                />
+                {isRecording && (
+                  <p className="text-red-400 text-xs mt-2 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    錄音中... 說完後點擊麥克風停止
+                  </p>
+                )}
+              </div>
 
               <div className="flex gap-3 pt-2">
                 <a href={video.url} target="_blank" rel="noopener noreferrer" className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded-xl text-center transition-colors">
@@ -303,15 +421,29 @@
     }
 
     function VideoCard({ video, getThumbnail, onOpenModal }) {
+      // 顯示分類（複選時用逗號分隔）
+      const categoryDisplay = video.categories?.length > 0 
+        ? video.categories.join(', ') 
+        : '未分類';
+
       return (
         <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group" onClick={() => onOpenModal(video)}>
           <div className="relative aspect-video bg-neutral-800">
             <img src={getThumbnail(video)} alt={video.title} className="w-full h-full object-cover" loading="lazy" />
-            {video.priority && <span className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded text-xs">{video.priority}</span>}
+            {/* 優先度標籤在右上角 */}
+            {video.priority && (
+              <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
+                video.priority.includes('必看') ? 'bg-red-500/90 text-white' :
+                video.priority.includes('重要') ? 'bg-amber-500/90 text-white' :
+                'bg-neutral-700/90 text-neutral-200'
+              }`}>
+                {video.priority}
+              </span>
+            )}
           </div>
           <div className="p-4">
             <div className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
-              <span className="bg-neutral-800 px-2 py-0.5 rounded">{video.category || '未分類'}</span>
+              <span className="bg-neutral-800 px-2 py-0.5 rounded">{categoryDisplay}</span>
               <span>·</span>
               <span>{video.status}</span>
             </div>
@@ -334,7 +466,7 @@
       const [loading, setLoading] = useState(true);
       const [error, setError] = useState(null);
       const [selectedCategory, setSelectedCategory] = useState("全部");
-      const [selectedStatus, setSelectedStatus] = useState("全部");
+      const [selectedStatus, setSelectedStatus] = useState("待看"); // 預設「待看」
       const [searchQuery, setSearchQuery] = useState("");
       const [selectedVideo, setSelectedVideo] = useState(null);
 
@@ -344,11 +476,15 @@
           .then(data => {
             const formattedVideos = data.map((item, index) => {
               const props = item.properties;
+              // 處理 multi_select 分類
+              const categoriesData = props['分類']?.multi_select || [];
+              const categoriesArray = categoriesData.map(c => c.name);
+              
               return {
                 id: item.id || index,
                 title: props['影片標題']?.title?.[0]?.plain_text || '無標題',
                 channel: props['頻道']?.rich_text?.[0]?.plain_text || '',
-                category: props['分類']?.select?.name || '',
+                categories: categoriesArray,
                 status: props['狀態']?.select?.name || '待看',
                 priority: props['優先度']?.select?.name || '',
                 thumbnail: props['縮圖網址']?.url || '',
@@ -356,6 +492,7 @@
                 summary: props['AI 摘要']?.rich_text?.[0]?.plain_text || '',
                 keyTakeaway: props['一句話學到']?.rich_text?.[0]?.plain_text || '',
                 highlights: props['精華片段']?.rich_text?.[0]?.plain_text || '',
+                notes: props['我的筆記']?.rich_text?.[0]?.plain_text || '',
                 rating: props['我的評分']?.number || 0,
                 createdTime: item.created_time || '',
               };
@@ -380,7 +517,7 @@
 
       const filteredVideos = useMemo(() => {
         return videos.filter(video => {
-          const matchCategory = selectedCategory === "全部" || video.category === selectedCategory;
+          const matchCategory = selectedCategory === "全部" || video.categories?.includes(selectedCategory);
           const matchStatus = selectedStatus === "全部" || video.status === selectedStatus;
           const matchSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) || video.channel.toLowerCase().includes(searchQuery.toLowerCase());
           return matchCategory && matchStatus && matchSearch;
