@@ -49,24 +49,25 @@
       return 0;
     }
 
-    // 解析精華片段
-    function parseHighlights(text) {
-      if (!text) return [];
-      const lines = text.split('\n').filter(line => line.trim());
-      return lines.map(line => {
-        // 匹配格式: 1:45-3:00 - 描述 或 1:45 - 描述
-        const match = line.match(/^(\d+:\d+)(?:-(\d+:\d+))?\s*-\s*(.+)$/);
-        if (match) {
-          return {
-            startTime: match[1],
-            endTime: match[2] || null,
-            description: match[3].trim(),
-            startSeconds: timeToSeconds(match[1])
-          };
-        }
-        return null;
-      }).filter(Boolean);
+// 解析精華片段
+function parseHighlights(text) {
+  if (!text) return [];
+  const lines = text.split('\n').filter(line => line.trim());
+  return lines.map(line => {
+    // 匹配格式: 
+    // 1. 0:00-1:30 描述 或 0:00-1:30 - 描述 或 0:00-0:30 問題分析：描述
+    const match = line.match(/^(?:\d+\.\s*)?(\d+:\d+)(?:-(\d+:\d+))?\s*[-：]?\s*(.+)$/);
+    if (match) {
+      return {
+        startTime: match[1],
+        endTime: match[2] || null,
+        description: match[3].trim().replace(/^[-：]\s*/, ''),
+        startSeconds: timeToSeconds(match[1])
+      };
     }
+    return null;
+  }).filter(Boolean);
+}
 
     // 星星評分組件
     function StarRating({ rating, onRate, size = "text-lg" }) {
