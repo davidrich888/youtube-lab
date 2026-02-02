@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 Ray 的學習研究庫</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans TC', -apple-system, sans-serif; }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // 影片資料
+    const videos = [
+      {
+        id: 1,
+        title: "Claude Code Will Make You Filthy Rich (No Coding Skills Needed)",
+        channel: "Leveling Up with Eric Siu",
+        duration: "17:14",
+        category: "AI 自動化",
+        status: "待看",
+        priority: "⭐ 重要",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/xiDpFVY0CVo/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=xiDpFVY0CVo",
+        summary: "• Claude Code 讓不會寫程式的人也能建立企業級系統\n• 實際案例：Slackbot（公司知識庫）、客戶流失預警系統、自動追加銷售機會識別\n• 一週內完成原本需要整個工程團隊的工作",
+        keyTakeaway: "AI 讓「會不會寫程式」變得不重要，重要的是「你想解決什麼問題」"
+      },
+      {
+        id: 2,
+        title: "I spoke to 17 of the best traders on wallstreet, here's what they do different",
+        channel: "Waqar Asim",
+        duration: "22:27",
+        category: "交易",
+        status: "待看",
+        priority: "🔥 必看",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/uMWY6SdVoTs/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=uMWY6SdVoTs",
+        summary: "• 95% 的交易者會虧損，主因：風控不足、情緒化決策、缺乏結構化方法\n• 成功的 5% 交易者專注於紀律、跟隨機構資金流向\n• 與 17 位華爾街頂級交易員訪談的實戰心得",
+        keyTakeaway: "交易的核心不是「預測市場」，而是「管理風險」和「執行紀律」"
+      },
+      {
+        id: 3,
+        title: "Why One-Person Companies Are the Future of Work",
+        channel: "There's An AI For That",
+        duration: "15:59",
+        category: "商業",
+        status: "待看",
+        priority: "⭐ 重要",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/hGdG-04TkDs/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=hGdG-04TkDs",
+        summary: "• AI 時代「一人公司」正在崛起，一個設計師可取代整個創意部門\n• 不需要員工、創投資金、傳統基礎設施就能建立百萬美元業務\n• AI 工具讓個人擁有過去大公司才有的能力",
+        keyTakeaway: "未來競爭力不在於「你有多少人」，而在於「你能用 AI 做多少事」"
+      },
+      {
+        id: 4,
+        title: "【實測老高3億爆款術】AI短影音！貓咪短片真的能財富自由？",
+        channel: "小礦工挖挖礦",
+        duration: "15:00",
+        category: "商業",
+        status: "待看",
+        priority: "📌 一般",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/gg-dXisTWDI/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=gg-dXisTWDI",
+        summary: "• 實測老高「貓咪短片」的獲利模式是否可行\n• AI 短影音製作流程實操教學\n• 探討這類內容的真實獲利潛力與限制",
+        keyTakeaway: "賺快錢的模式通常有限制，要先驗證再投入"
+      },
+      {
+        id: 5,
+        title: "I'll never use n8n the same......",
+        channel: "NetworkChuck",
+        duration: "17:24",
+        category: "AI 自動化",
+        status: "待看",
+        priority: "🔥 必看",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/s96JeuuwLzc/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=s96JeuuwLzc",
+        summary: "• n8n + Claude Code 結合的威力巨大\n• 展示如何將 AI 終端工具整合到 n8n 自動化工作流\n• 可以讓 n8n 調用 Claude Code / Gemini CLI 執行複雜任務",
+        keyTakeaway: "自動化 + AI = 無限可能，n8n 是強大的中間層整合工具"
+      },
+      {
+        id: 6,
+        title: "How I Built a $10K/Month Mobile App Using AI in 15 Minutes",
+        channel: "Wealth Wisdom",
+        duration: "12:00",
+        category: "AI 自動化",
+        status: "待看",
+        priority: "⭐ 重要",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/SI8T1yvmoRs/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=SI8T1yvmoRs",
+        summary: "• 15 分鐘用 AI 建立月入 $10K 的 App\n• 展示從構思到上架的完整流程\n• 適合想快速驗證產品想法的創業者",
+        keyTakeaway: "MVP 的速度比完美更重要，先驗證市場再迭代優化"
+      },
+      {
+        id: 7,
+        title: "短劇也能工廠化？我用一套自動化流程 5 分鐘產出腳本到分鏡",
+        channel: "AI 專業工具",
+        duration: "20:00",
+        category: "AI 自動化",
+        status: "待看",
+        priority: "🔥 必看",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/rIMBVRc2xyQ/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=rIMBVRc2xyQ",
+        summary: "• 5 分鐘從腳本到分鏡的自動化流程\n• 短劇內容工廠化生產的實操方法\n• 展示 AI 如何處理創意內容的標準化流程",
+        keyTakeaway: "內容生產可以模組化，關鍵是建立可重複的流程"
+      },
+      {
+        id: 8,
+        title: "How To Actually Make VIRAL Construction Videos Using AI in Seconds",
+        channel: "Jacksons AI",
+        duration: "10:00",
+        category: "商業",
+        status: "待看",
+        priority: "📌 一般",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/dB1LjJ5ZhwY/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=dB1LjJ5ZhwY",
+        summary: "• AI 製作病毒式建築影片的方法\n• 幾秒內完成影片製作的實操流程\n• 展示特定垂直領域（建築）的內容策略",
+        keyTakeaway: "垂直領域 + AI 工具 = 低競爭的內容藍海"
+      },
+      {
+        id: 9,
+        title: "利用Claude Code + Remotion自动生成视频",
+        channel: "退役程序員",
+        duration: "15:00",
+        category: "AI 自動化",
+        status: "待看",
+        priority: "⭐ 重要",
+        dateAdded: "2025-02-02",
+        thumbnail: "https://i.ytimg.com/vi/GHoR2XLwchQ/hqdefault.jpg",
+        url: "https://www.youtube.com/watch?v=GHoR2XLwchQ",
+        summary: "• Claude Code + Remotion 自動生成影片教學\n• 程式化影片製作的實操流程\n• 適合有程式背景想建立影片自動化系統的人",
+        keyTakeaway: "Remotion 是影片自動化的強大工具，配合 Claude Code 可以快速開發"
+      },
+    ];
+
+    const categories = ["全部", "交易", "AI 自動化", "商業", "健身"];
+    const statuses = ["全部", "待看", "進行中", "已完成"];
+
+    function App() {
+      const [selectedCategory, setSelectedCategory] = useState("全部");
+      const [selectedStatus, setSelectedStatus] = useState("全部");
+      const [searchQuery, setSearchQuery] = useState("");
+
+      const filteredVideos = useMemo(() => {
+        return videos.filter(video => {
+          const matchCategory = selectedCategory === "全部" || video.category === selectedCategory;
+          const matchStatus = selectedStatus === "全部" || video.status === selectedStatus;
+          const matchSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             video.channel.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchCategory && matchStatus && matchSearch;
+        });
+      }, [selectedCategory, selectedStatus, searchQuery]);
+
+      const stats = useMemo(() => {
+        return {
+          total: videos.length,
+          pending: videos.filter(v => v.status === "待看").length,
+          inProgress: videos.filter(v => v.status === "進行中").length,
+          completed: videos.filter(v => v.status === "已完成").length,
+          summarized: videos.filter(v => v.summary).length,
+        };
+      }, []);
+
+      return (
+        <div className="min-h-screen bg-neutral-950 text-neutral-200">
+          {/* Header */}
+          <header className="sticky top-0 z-50 border-b border-neutral-800 bg-neutral-950/90 backdrop-blur-md">
+            <div className="max-w-6xl mx-auto px-4 py-4">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h1 className="text-xl font-semibold text-white">📚 Ray 的學習研究庫</h1>
+                  <p className="text-neutral-500 text-sm mt-0.5">把資訊焦慮轉化為系統學習</p>
+                </div>
+                <a
+                  href="https://www.notion.so/76fb8600ae9649bcb6c475f75f0ec818"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white text-black font-medium px-4 py-2 rounded-lg text-sm hover:bg-neutral-200 transition-colors hidden sm:block"
+                >
+                  打開 Notion →
+                </a>
+              </div>
+
+              {/* Stats */}
+              <div className="flex gap-4 sm:gap-6 text-sm overflow-x-auto pb-2">
+                <span className="text-neutral-400 whitespace-nowrap">總共 <span className="text-white font-medium">{stats.total}</span></span>
+                <span className="text-neutral-400 whitespace-nowrap">待看 <span className="text-white font-medium">{stats.pending}</span></span>
+                <span className="text-neutral-400 whitespace-nowrap">進行中 <span className="text-white font-medium">{stats.inProgress}</span></span>
+                <span className="text-neutral-400 whitespace-nowrap">已完成 <span className="text-white font-medium">{stats.completed}</span></span>
+                <span className="text-neutral-400 whitespace-nowrap">已整理 <span className="text-white font-medium">{stats.summarized}</span></span>
+              </div>
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="max-w-6xl mx-auto px-4 py-4">
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <input
+                type="text"
+                placeholder="搜尋..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full sm:w-48 px-4 py-2 rounded-lg border border-neutral-800 bg-neutral-900 text-neutral-200 text-sm outline-none focus:border-neutral-600 transition-colors placeholder-neutral-600"
+              />
+
+              <div className="flex gap-1 overflow-x-auto pb-2 sm:pb-0">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
+                      selectedCategory === cat
+                        ? 'bg-white text-black font-medium'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden sm:block h-4 w-px bg-neutral-800 self-center"></div>
+
+              <div className="flex gap-1 overflow-x-auto pb-2 sm:pb-0">
+                {statuses.map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setSelectedStatus(status)}
+                    className={`px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
+                      selectedStatus === status
+                        ? 'bg-neutral-800 text-white font-medium'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Video Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredVideos.map(video => (
+                <div
+                  key={video.id}
+                  className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 hover:border-neutral-700 transition-all group"
+                >
+                  {/* Thumbnail */}
+                  <a href={video.url} target="_blank" rel="noopener noreferrer" className="block">
+                    <div className="relative aspect-video bg-neutral-800 overflow-hidden">
+                      <img 
+                        src={video.thumbnail} 
+                        alt={video.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = `https://i.ytimg.com/vi/${video.url.split('v=')[1]}/hqdefault.jpg`;
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-xs font-medium">
+                        {video.duration}
+                      </div>
+                      {video.priority === "🔥 必看" && (
+                        <div className="absolute top-2 left-2 bg-red-500 px-2 py-0.5 rounded text-xs font-medium">
+                          必看
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                          <span className="text-white text-lg ml-1">▶</span>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+
+                  {/* Content */}
+                  <div className="p-4">
+                    <div className="flex gap-2 mb-2 text-xs">
+                      <span className="text-neutral-500">{video.category}</span>
+                      <span className="text-neutral-700">•</span>
+                      <span className={
+                        video.status === "待看" ? "text-neutral-500" :
+                        video.status === "進行中" ? "text-amber-500" :
+                        "text-emerald-500"
+                      }>{video.status}</span>
+                    </div>
+
+                    <h3 className="font-medium text-white mb-1.5 line-clamp-2 leading-snug text-sm">
+                      {video.title}
+                    </h3>
+                    <p className="text-xs text-neutral-500 mb-3">{video.channel}</p>
+
+                    {/* Summary */}
+                    {video.summary ? (
+                      <div className="bg-neutral-800/50 rounded-lg p-3 border border-neutral-800">
+                        <div className="text-xs text-neutral-400 mb-2">AI 摘要</div>
+                        <div className="text-xs text-neutral-300 whitespace-pre-line leading-relaxed">
+                          {video.summary}
+                        </div>
+                        {video.keyTakeaway && (
+                          <div className="mt-2 pt-2 border-t border-neutral-700">
+                            <div className="text-xs text-amber-500/80">
+                              💡 {video.keyTakeaway}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-neutral-800/30 rounded-lg p-3 border border-dashed border-neutral-800 text-center">
+                        <p className="text-xs text-neutral-600">尚未整理摘要</p>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-2 mt-3">
+                      <a 
+                        href={video.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2 rounded-lg border border-neutral-800 text-neutral-400 text-xs font-medium hover:bg-neutral-800 hover:text-white transition-colors text-center"
+                      >
+                        ▶️ 觀看
+                      </a>
+                      <button className="px-4 py-2 rounded-lg bg-neutral-800 text-neutral-300 text-xs font-medium hover:bg-neutral-700 transition-colors">
+                        ✓ 完成
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {filteredVideos.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-neutral-500">找不到符合條件的影片</p>
+              </div>
+            )}
+          </main>
+
+          {/* Telegram Hint */}
+          <a 
+            href="https://t.me/YT_video_DB_bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fixed bottom-6 right-6 bg-neutral-800 hover:bg-neutral-700 rounded-full px-4 py-2 flex items-center gap-2 transition-colors border border-neutral-700"
+          >
+            <span>✈️</span>
+            <span className="text-sm text-neutral-300">TG Bot</span>
+          </a>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
