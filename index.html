@@ -430,16 +430,14 @@
         <div className="bg-neutral-900 rounded-xl overflow-hidden border border-neutral-800 hover:border-neutral-700 transition-all cursor-pointer group" onClick={() => onOpenModal(video)}>
           <div className="relative aspect-video bg-neutral-800">
             <img src={getThumbnail(video)} alt={video.title} className="w-full h-full object-cover" loading="lazy" />
-            {/* 優先度標籤在右上角 */}
-            {video.priority && (
-              <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
-                video.priority.includes('必看') ? 'bg-red-500/90 text-white' :
-                video.priority.includes('重要') ? 'bg-amber-500/90 text-white' :
-                'bg-neutral-700/90 text-neutral-200'
-              }`}>
-                {video.priority}
-              </span>
-            )}
+            {/* 優先度標籤在右上角 - 永遠顯示 */}
+            <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${
+              video.priority?.includes('必看') ? 'bg-red-500/90 text-white' :
+              video.priority?.includes('重要') ? 'bg-amber-500/90 text-white' :
+              'bg-neutral-700/90 text-neutral-200'
+            }`}>
+              {video.priority || '📌一般'}
+            </span>
           </div>
           <div className="p-4">
             <div className="flex items-center gap-2 text-xs text-neutral-500 mb-2">
