@@ -46,19 +46,19 @@
           .then(data => {
             // 轉換 Notion 資料格式
             const formattedVideos = data.map((item, index) => {
-              const props = item.properties || item;
+              const props = item.properties;
               return {
                 id: item.id || index,
-                title: props['影片標題']?.title?.[0]?.plain_text || props['影片標題'] || '無標題',
-                channel: props['頻道']?.rich_text?.[0]?.plain_text || props['頻道'] || '',
-                duration: props['影片長度']?.rich_text?.[0]?.plain_text || props['影片長度'] || '',
-                category: props['分類']?.select?.name || props['分類'] || '',
-                status: props['狀態']?.select?.name || props['狀態'] || '待看',
-                priority: props['優先度']?.select?.name || props['優先度'] || '',
-                thumbnail: props['縮圖網址']?.url || props['縮圖網址'] || '',
-                url: props['網址']?.url || props['網址'] || '',
-                summary: props['AI 摘要']?.rich_text?.[0]?.plain_text || props['AI 摘要'] || '',
-                keyTakeaway: props['一句話學到']?.rich_text?.[0]?.plain_text || props['一句話學到'] || '',
+                title: props['影片標題']?.title?.[0]?.plain_text || '無標題',
+                channel: props['頻道']?.rich_text?.[0]?.plain_text || '',
+                duration: props['影片長度']?.rich_text?.[0]?.plain_text || '',
+                category: props['分類']?.select?.name || '',
+                status: props['狀態']?.select?.name || '待看',
+                priority: props['優先度']?.select?.name || '',
+                thumbnail: props['縮圖網址']?.url || '',
+                url: props['網址']?.url || '',
+                summary: props['AI 摘要']?.rich_text?.[0]?.plain_text || '',
+                keyTakeaway: props['一句話學到']?.rich_text?.[0]?.plain_text || '',
               };
             });
             setVideos(formattedVideos);
